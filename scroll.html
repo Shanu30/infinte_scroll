@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>infinite scroll</title>
+    <style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+
+
+    body {
+        font-family: 'Sanchez', serif;
+        font-size: 10px;
+        background: rgb(250, 230, 230);
+        color: red;
+        margin: 0 20px;
+
+    }
+
+    h1 {
+        font-size: 36px;
+        margin: 30px;
+        text-align: center;
+        text-transform: uppercase;
+
+    }
+
+    .container {
+        max-width: 768px;
+        margin: 2em auto;
+
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .quotes {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    blockquote {
+        margin-bottom: 25px;
+    }
+
+    .quote {
+        position: relative;
+        font-size: 20px;
+        line-height: 1.7em;
+        word-break: break-word;
+
+
+    }
+
+    .quote footer {
+        font-size: 0.6em;
+        font-weight: 700;
+        color: red;
+        text-align: right;
+    }
+
+    .quote footer:before {
+        content: '\2015';
+    }
+
+    /* loader */
+
+    .loader {
+        display: inline-block;
+        position: relative;
+        width: 80px;
+        height: 80px;
+        opacity: 0;
+
+    }
+
+
+    .loader.show {
+        opacity: 1;
+    }
+
+    .loader div {
+        display: inline-block;
+        position: absolute;
+        left: 8px;
+        width: 16px;
+        background: #f4f4f4;
+        animation: loader 1.2s cubic-bezier(0, 0.5, 0.5, 1) infinite;
+    }
+
+    .loader div:nth-child(1) {
+        left: 8px;
+        animation-delay: -0.24s;
+    }
+
+    .loader div:nth-child(2) {
+        left: 32px;
+        animation-delay: -0.12s;
+    }
+
+    .loader div:nth-child(3) {
+        left: 56px;
+        animation-delay: 0;
+    }
+
+    @keyframes loader {
+        0% {
+            top: 5px;
+            height: 50px;
+        }
+
+        50%,
+        100% {
+            top: 12px;
+            height: 16px;
+        }
+    }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Quotes</h1>
+        <div class="quotes"></div>
+        <div class="loader">
+            <div></div>
+            <div></div>
+            <div></div>
+        </div>
+    </div>
+    <script>
+        const quotesEl = document.querySelector('.quotes');
+        const loaderEl = document.querySelector('.loader');
+
+        const getQuotes = async (page, limit) => {
+            const API_URL = `https://api.javascripttutorial.net/v1/quotes/?page=${page}&limit=${limit}`;
+            const response = await fetch(API_URL);
+            if (!response.ok) {
+                throw new Error(`An error occurred: ${response.status}`);
+            }
+            return await response.json();
+        }
+
+        const showQuotes = (quotes) => {
+            quotes.forEach(quote => {
+                const quoteEl = document.createElement('blockquote');
+                quoteEl.classList.add('quote');
+                quoteEl.innerHTML = `
+                <span>${quote.id})</span>
+                ${quote.quote}
+                <footer>${quote.author}</footer>
+            `;
+                quotesEl.appendChild(quoteEl);
+            });
+        };
+        const hideLoader = () => {
+            loaderEl.classList.remove('show');
+        };
+        const showLoader = () => {
+            loaderEl.classList.add('show');
+        };
+        const hasMoreQuotes = (page, limit, total) => {
+            const startIndex = (page - 1) * limit + 1;
+            return total === 0 || startIndex < total;
+        };
+
+        const loadQuotes = async (page, limit) => {
+        
+            showLoader();
+            setTimeout(async () => {
+                try {
+                    if (hasMoreQuotes(page, limit, total)) {
+                        const response = await getQuotes(page, limit);
+                        showQuotes(response.data);
+                        total = response.total;
+                    }
+                } catch (error) {
+                    console.log(error.message);
+                } finally {
+                    hideLoader();
+                }
+            }, 500);
+        };
+
+        let currentPage = 1;
+        const limit = 25;
+        let total = 0;
+        window.addEventListener('scroll', () => {
+            const {
+                scrollTop,
+                scrollHeight,
+                clientHeight
+            } = document.documentElement;
+            if (scrollTop + clientHeight >= scrollHeight - 5 &&
+                hasMoreQuotes(currentPage, limit, total)) {
+                currentPage++;
+                loadQuotes(currentPage, limit);
+            }
+        }, {
+            passive: true
+        });
+
+        loadQuotes(currentPage, limit);
+
+
+    </script>
+</body>
+</html>
